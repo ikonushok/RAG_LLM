@@ -1,9 +1,11 @@
-from transformers import DistilBertForQuestionAnswering, DistilBertTokenizer
-import torch
 import os
+import torch
+from transformers import DistilBertForQuestionAnswering, DistilBertTokenizer
+
+
 
 # Загрузка модели и токенизатора
-local_model_path = "local_models/local_distilbert"
+local_model_path = "./local_distilbert"
 # Проверяем, существует ли папка и выводим содержимое
 print(f'Model path exists: {os.path.exists(local_model_path)}')  # Проверяет, существует ли папка
 print(f'Files in model path: {os.listdir(local_model_path)}')     # Показывает содержимое папки
@@ -33,8 +35,8 @@ def get_llm_answer(query, context):
 
 
 # Пример запроса
-query = "Что делает кондиционер Daichi?"
-context = "Кондиционеры Daichi серии ICE обеспечивают экономию энергии при охлаждении, обогреве и осушении воздуха."
+query = "Столица Франции?"
+context = "Столица Франции - Париж."
 response = get_llm_answer(query, context)
 print(f'\nquery: {query}\ncontext: {context}\nresponse: {response}')
 

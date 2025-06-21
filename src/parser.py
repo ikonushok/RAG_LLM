@@ -1,54 +1,81 @@
+import logging
 
 from pdfminer.high_level import extract_text
-import logging
+import re
+from typing import List
+from src.vectorizer import vectorize_text
 
 
 def extract_text_from_pdf(pdf_path):
-    """
-    Извлекает текст из PDF файла с помощью pdfminer.six
-    """
-    try:
-        # Извлекаем текст из PDF
-        text = extract_text(pdf_path)
-        if not text:
-            logging.warning(f"Текст из файла {pdf_path} не был извлечен.")
-        return text
-    except Exception as e:
-        logging.error(f"Ошибка при извлечении текста из PDF: {e}")
-        return ""
+    raw = extract_text(pdf_path) or ""
+    return raw
 
-
-def preprocess_text(text):
+def split_into_paragraphs(raw: str) -> List[str]:
     """
-    Преобразует извлеченный текст: удаляет лишние пробелы и символы новой строки
+    Разбивает сырой текст на параграфы по пустым строкам.
     """
-    # Убираем лишние пробелы, символы новой строки и табуляции
-    processed_text = ' '.join(text.split())
-    return processed_text
+    lines = raw.splitlines()
+    paras, buf = [], []
+    for line in lines:
+        if line.strip() == "":
+            if buf:
+                paras.append(" ".join(buf))
+                buf = []
+        else:
+            buf.append(line.strip())
+    if buf:
+        paras.append(" ".join(buf))
+    return paras
 
-
-def parse_pdf(pdf_path):
+def preprocess_paragraph(p: str) -> str:
     """
-    Основная функция для извлечения и обработки текста из PDF
+    1. Склеивает дефисный перенос: "мон-\nтаж" → "монтаж"
+    2. Заменяет остатки переносов строк на пробелы.
+    3. Сводит подряд идущие пробелы к одному.
+    4. Убирает пробелы по краям.
     """
-    # Извлекаем текст из PDF
-    text = extract_text_from_pdf(pdf_path)
+    # 1) дефисы-переносы
+    p = re.sub(r'(\w+)-\s*\n\s*(\w+)', r'\1\2', p)
+    # 2) остальные переводы строк
+    p = p.replace("\n", " ")
+    # 3) множественные пробелы → один
+    p = re.sub(r'\s+', " ", p)
+    # 4) обрезка
+    return p.strip()
 
-    # Если текст извлечен, то обрабатываем его
-    if text:
-        processed_text = preprocess_text(text)
-        return processed_text
-    else:
-        return None
+def parse_pdf(pdf_path: str, min_length: int = 30) -> List[str]:
+    """
+    Возвращает список «чистых» параграфов длиной >= min_length.
+    """
+    raw = extract_text_from_pdf(pdf_path)
+    if not raw:
+        return []
+
+    paras = split_into_paragraphs(raw)
+    cleaned = [preprocess_paragraph(p) for p in paras]
+    # Оставляем только «достаточно длинные» фрагменты
+    return [p for p in cleaned if len(p) >= min_length]
+
 
 
 # Пример использования:
-if __name__ == '__main__':
-    pdf_path = '../data/sample_2.pdf'  # Путь к вашему PDF файлу
-    text = parse_pdf(pdf_path)
+def main():
+    logging.basicConfig(level=logging.INFO)
 
-    if text:
-        print("Извлеченный и обработанный текст:")
-        print(text)
-    else:
-        print("Не удалось извлечь текст из файла.")
+    # 1) Парсим PDF и получаем абзацы
+    paras = parse_pdf("../documents/sample_2.pdf")
+    logging.info(f"Parsed {len(paras)} paragraphs.")
+
+    if not paras:
+        logging.error("Нечего векторизовать — парсер вернул пустой список.")
+        return
+
+    # 2) Векторизуем
+    try:
+        vectors = vectorize_text(paras)
+        logging.info(f"Got {len(vectors)} векторных представлений.")
+    except Exception as e:
+        logging.error(f"Ошибка при векторизации: {e}")
+
+if __name__ == "__main__":
+    main()

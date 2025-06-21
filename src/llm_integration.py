@@ -1,4 +1,6 @@
 import os
+import numpy as np
+import logging
 import torch
 from transformers import DistilBertForQuestionAnswering, DistilBertTokenizer
 # from src.utils import timer_decorator
@@ -7,32 +9,36 @@ from src.vectorizer import vectorize_text
 # Загрузка модели BERT (Base) и токенизатора
 # Путь к локальной папке, где хранится модель и токенизатор
 local_model_path = "../local_models/local_distilbert"
-print(f'Model path exists: {os.path.exists(local_model_path)}')  # Проверка существования папки
-print(f'Files in model path: {os.listdir(local_model_path)}')     # Содержимое папки
+# print(f'Model path exists: {os.path.exists(local_model_path)}')      # Проверка существования папки
+# print(f'Files in model path: {os.listdir(local_model_path)}')        # Содержимое папки
 model = DistilBertForQuestionAnswering.from_pretrained(local_model_path, local_files_only=True)
 tokenizer = DistilBertTokenizer.from_pretrained(local_model_path, local_files_only=True)
 
 
 # Функция для получения наиболее релевантных фрагментов текста с использованием FAISS
-def get_relevant_text(query, faiss_index, original_texts, top_k=1):
-    # Проверка на пустой запрос
-    if not query.strip():
-        raise ValueError("Запрос не может быть пустым.")
+def get_relevant_text(query, faiss_index, original_texts, top_k=5):
+    # Логируем исходный запрос
+    logging.debug(f"Query: {query}")
 
-    # Преобразуем запрос в вектор
-    try:
-        query_vector = vectorize_text([query])
-    except ValueError as e:
-        print(f"Error in vectorizing query: {e}")
-        return []  # Можно вернуть пустой список или обработать ошибку другим способом
+    # Векторизация запроса
+    query_vector = vectorize_text([query])
+    # Логируем вектор запроса
+    logging.debug(f"Query vector: {query_vector}")
 
-    # Поиск наиболее похожих документов
+    # Преобразуем в numpy, если это список
+    query_vector = np.array(query_vector)
+
+    # Убедимся, что запрос двумерный (если одномерный, то добавляем ось)
+    if len(query_vector.shape) == 1:
+        query_vector = np.expand_dims(query_vector, axis=0)
+
+    # Поиск по FAISS
     distances, indices = faiss_index.search(query_vector, top_k)
 
-    # Извлечение текста по найденным индексам
+    # Извлечение релевантных текстов
     relevant_texts = [original_texts[i] for i in indices[0]]
+    logging.debug(f"Relevant texts: {relevant_texts}")
 
-    print(f"Relevant texts found: {relevant_texts}")  # Выводим релевантные фрагменты
     return relevant_texts
 
 
@@ -48,7 +54,7 @@ def get_llm_answer(query, original_texts, faiss_index):
 
     # Шаг 2: Передаем найденный текст в модель для ответа
     context = " ".join(relevant_texts)  # Объединяем все фрагменты в один контекст
-    print(f"Context for LLM: {context}")  # Выводим контекст для проверки
+    logging.info(f"Context for LLM: {context}")  # Выводим контекст для проверки
 
     inputs = tokenizer(query, context, return_tensors="pt", truncation='only_second', padding=True, max_length=512)
 
