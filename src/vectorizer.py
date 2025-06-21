@@ -2,6 +2,9 @@ import logging
 from typing import List
 from sentence_transformers import SentenceTransformer
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 # Инициализация модели
 model = SentenceTransformer('all-MiniLM-L6-v2')
 

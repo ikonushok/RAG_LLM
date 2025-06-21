@@ -3,6 +3,8 @@ import numpy as np
 
 from src.vectorizer import filter_short_texts
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 # Маппинг текстов на индексы
 text_to_index_mapping = {}
 

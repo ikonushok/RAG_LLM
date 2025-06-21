@@ -21,7 +21,7 @@ def main():
         return
 
     # Выбираем первый документ (или любой другой по индексу)
-    pdf_name = pdf_files[0]
+    pdf_name = pdf_files[1]
     pdf_path = os.path.join(docs_dir, pdf_name)
     logging.info(f"Parsing document: {pdf_name}")
 
@@ -45,10 +45,11 @@ def main():
     logging.info("FAISS index created")
 
     # 5) Пробный запрос к LLM через RAG
-    query = "Как установить дренажный шланг на Daichi ICE95AVQ1?"
-    print("Query: %s", query)
+    query = "Как очистить фильтр на Daichi ICE95AVQ1?"
+    # query = "Как установить дренажный шланг на Daichi ICE95AVQ1?"
+    print("\nQuery:\n", query)
     response = get_llm_answer(query, original_texts, faiss_index)
-    print("Response: %s", response)
+    print("\nResponse:\n", response)
 
     # 6) (Опционально) Запуск Telegram-бота
     # start_bot(faiss_index)

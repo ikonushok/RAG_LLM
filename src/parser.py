@@ -5,6 +5,9 @@ import re
 from typing import List
 from src.vectorizer import vectorize_text
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 
 def extract_text_from_pdf(pdf_path):
     raw = extract_text(pdf_path) or ""
