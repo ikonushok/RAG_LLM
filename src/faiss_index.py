@@ -1,22 +1,34 @@
 import faiss
 import numpy as np
 
-from src.utils import timer_decorator
+# Маппинг текстов на индексы
+text_to_index_mapping = {}
 
-texts = []  # Здесь будут храниться оригинальные тексты
 
-@timer_decorator
-def create_faiss_index(vectors, original_texts):
-    global texts
-    texts = original_texts  # Сохраняем оригинальные тексты для последующего поиска
+def filter_short_texts(texts, min_length=3):
+    """Фильтрация слишком коротких текстов."""
+    # Если тексты - это списки символов, объединяем их в строки
+    texts = [''.join(text) if isinstance(text, list) else text for text in texts]
+    # Фильтруем строки по длине
+    return [text for text in texts if len(text) >= min_length]
 
-    index = faiss.IndexFlatL2(vectors.shape[1])
-    index.add(vectors)
+def create_faiss_index(vectors, texts):
+    # Фильтруем короткие тексты
+    filtered_texts = filter_short_texts(texts)
+
+    # Если после фильтрации нет текста, выбрасываем исключение
+    if not filtered_texts:
+        raise ValueError("No valid texts available after filtering.")
+
+    # Создание FAISS индекса
+    if len(vectors.shape) == 1:
+        vectors = np.expand_dims(vectors, axis=0)
+
+    index = faiss.IndexFlatL2(vectors.shape[1])  # FAISS индекс для поиска по L2 расстоянию
+    index.add(np.array(vectors, dtype=np.float32))  # Добавляем векторы в индекс
+
+    # Маппинг текстов на индексы
+    for i, text in enumerate(filtered_texts):
+        text_to_index_mapping[i] = text
+
     return index
-
-# @timer_decorator
-@timer_decorator
-def search_faiss(query_vector, index, k=1):
-    D, I = index.search(np.array(query_vector), k)
-    return D, I, texts
-

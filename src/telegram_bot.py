@@ -1,59 +1,40 @@
-import numpy as np
+# Пример кода для взаимодействия с Telegram API
+import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-from src.faiss_index import create_faiss_index
-from src.llm_integration import get_llm_answer
-from src.vectorizer import vectorize_text  # Импортируем функцию для векторизации
+# from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# Переменная для хранения индекса FAISS
-faiss_index = None
+# Здесь мы применяем новый код фильтрации
+from faiss_index import create_faiss_index
+from vectorizer import vectorize_text
 
-# Функция стартовой команды
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Привет! Задай свой вопрос.")
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text("Привет! Задай вопрос по инструкции.")
 
+def handle_message(update: Update, context: CallbackContext) -> None:
+    user_query = update.message.text
+    relevant_texts = get_relevant_text(user_query)  # Функция поиска релевантных текстов
 
-# Функция для обработки сообщений
-async def handle_message(update: Update, context: CallbackContext):
-    user_message = update.message.text
+    # Отправляем пользователю найденные данные
+    update.message.reply_text(f"Ответ: {relevant_texts}")
 
-    # Векторизация текста пользователя
-    query_vector = vectorize_text(user_message)  # Преобразуем текст в вектор
+def get_relevant_text(query):
+    """Функция для получения релевантных текстов"""
+    query_vector = vectorize_text([query])
+    faiss_index = create_faiss_index(query_vector, original_texts)
+    # Функция для получения релевантных текстов из FAISS индекса
+    return faiss_index.search(query_vector, k=5)
 
-    # Проверка формы вектора
-    if query_vector.ndim == 1:
-        query_vector = query_vector.reshape(1, -1)  # Преобразуем вектор в нужную форму (1, d)
+def main() -> None:
+    """Запуск бота"""
+    updater = Updater("YOUR_TOKEN")
 
-    # Ищем ответ в FAISS
-    D, I, texts = create_faiss_index(query_vector, faiss_index, k=1)  # Передаем индекс для поиска
-    if I is not None and len(I) > 0:
-        # Извлекаем текст, соответствующий найденному индексу
-        result_text = texts[I[0][0]]  # Получаем текст по индексу
-        await update.message.reply_text(f"Результат поиска в FAISS {D[0]}: {result_text}")
-    else:
-        # Если не нашли, используем LLM
-        llm_answer = get_llm_answer(user_message)
-        await update.message.reply_text(llm_answer)
+    dispatcher = updater.dispatcher
 
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
 
-# Функция для запуска бота
-def start_bot(index):
-    global faiss_index
-    faiss_index = index  # Передаем индекс FAISS в глобальную переменную
+    updater.start_polling()
+    updater.idle()
 
-    # Инициализация приложения и передача API ключа
-    application = Application.builder().token("7355008524:AAFEGyJvurpjGQCnXF9gly0_6aDY1gcRDao").build()
-
-    # Добавление обработчиков команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Запуск бота
-    application.run_polling()
-
-
-if __name__ == "__main__":
-    # t.me/ZeBrains_test_bot
-    # Use this token to access the HTTP API: 7355008524:AAFEGyJvurpjGQCnXF9gly0_6aDY1gcRDao
-    start_bot(faiss_index)  # Передаем индекс FAISS при запуске бота
-
+if __name__ == '__main__':
+    main()

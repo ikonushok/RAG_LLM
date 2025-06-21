@@ -1,7 +1,7 @@
 import os
 import torch
 from transformers import DistilBertForQuestionAnswering, DistilBertTokenizer
-from src.utils import timer_decorator
+# from src.utils import timer_decorator
 from src.vectorizer import vectorize_text
 
 # Загрузка модели BERT (Base) и токенизатора
@@ -20,7 +20,11 @@ def get_relevant_text(query, faiss_index, original_texts, top_k=1):
         raise ValueError("Запрос не может быть пустым.")
 
     # Преобразуем запрос в вектор
-    query_vector = vectorize_text([query])  # Векторизуем запрос
+    try:
+        query_vector = vectorize_text([query])
+    except ValueError as e:
+        print(f"Error in vectorizing query: {e}")
+        return []  # Можно вернуть пустой список или обработать ошибку другим способом
 
     # Поиск наиболее похожих документов
     distances, indices = faiss_index.search(query_vector, top_k)

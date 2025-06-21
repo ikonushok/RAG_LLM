@@ -4,7 +4,7 @@ from src.llm_integration import get_llm_answer
 from src.parser import extract_text_from_pdf
 from src.vectorizer import vectorize_text
 from src.faiss_index import create_faiss_index
-from src.telegram_bot import start_bot
+# from src.telegram_bot import start_bot
 
 
 
