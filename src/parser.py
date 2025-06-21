@@ -57,7 +57,6 @@ def parse_pdf(pdf_path: str, min_length: int = 30) -> List[str]:
     return [p for p in cleaned if len(p) >= min_length]
 
 
-
 # Пример использования:
 def main():
     logging.basicConfig(level=logging.INFO)
