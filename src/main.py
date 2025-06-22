@@ -1,5 +1,6 @@
 import os
 import warnings
+
 # Подавляем все FutureWarning
 warnings.filterwarnings("ignore", category=FutureWarning)
 # Подавляем конкретное предупреждение от PyTorch
@@ -16,6 +17,7 @@ from tqdm import tqdm
 
 from src.parser import build_index
 from src.llm_integration import get_llm_answer
+from telegram_bot import main as run_bot
 
 
 
@@ -23,17 +25,15 @@ def main():
     # Настройка логирования
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # 1/ Построение индексов
-    # docs_dir = '../data/documents'
-    # brands = {
-    #     "Daichi": "daichi.pdf",
-    #     "Dantex": "dantex.pdf"
-    # }
+    docs_dir = '../data/documents'
+    index_dir = "../data/indexes"
+
+    # 1/ Построение индексов - запустить в начале для сохранения индексов
+    # brands = { "Daichi": "daichi.pdf", "Dantex": "dantex.pdf"}
     # for brand, filename in tqdm(brands.items(), desc="Building indexes.."):
     #     build_index(brand, os.path.join(docs_dir, filename), output_dir=index_dir)
 
     # 2/ Пример использования: загружаем нужный бренд
-    index_dir = "../data/indexes"
     # selected_brand = "Daichi"
     selected_brand = "Dantex"
     print(f'\nSelected_brand:\n {selected_brand}')
@@ -51,7 +51,7 @@ def main():
     print("Response:\n", response)
 
     # 3/ (Опционально) Запуск Telegram-бота
-    # start_bot(faiss_index)
+    # run_bot()
 
 
 if __name__ == "__main__":
