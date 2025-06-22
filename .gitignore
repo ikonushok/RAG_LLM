@@ -1,0 +1,6 @@
+/data/indexes/
+/.venv/
+/local_models/Hugging_Face_tocken
+/local_models/local_distilbert/
+/local_models/local_mistral/
+/local_models/local_openhermes/
