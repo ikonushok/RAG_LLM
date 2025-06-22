@@ -1,61 +1,56 @@
 import os
+import warnings
+# Подавляем все FutureWarning
+warnings.filterwarnings("ignore", category=FutureWarning)
+# Подавляем конкретное предупреждение от PyTorch
+warnings.filterwarnings("ignore", message=".*torch.utils._pytree._register_pytree_node is deprecated.*")
+warnings.filterwarnings("ignore", category=UserWarning, message=".*pytree.*deprecated.*")
+# Установка переменной окружения для устранения ошибок от MKL/OpenMP
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+import faiss
+import pickle
 import logging
 
+from tqdm import tqdm
+
+from src.parser import build_index
 from src.llm_integration import get_llm_answer
-from src.parser import parse_pdf
-from src.vectorizer import vectorize_text
-from src.faiss_index import create_faiss_index
-# from src.telegram_bot import start_bot
 
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning)
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 def main():
     # Настройка логирования
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+    # 1/ Построение индексов
+    # docs_dir = '../data/documents'
+    # brands = {
+    #     "Daichi": "daichi.pdf",
+    #     "Dantex": "dantex.pdf"
+    # }
+    # for brand, filename in tqdm(brands.items(), desc="Building indexes.."):
+    #     build_index(brand, os.path.join(docs_dir, filename), output_dir=index_dir)
 
-    # 1) Собираем список PDF файлов в папке documents/documents
-    docs_dir = '../documents'
-    pdf_files = [f for f in os.listdir(docs_dir) if f.lower().endswith('.pdf')]
-    if not pdf_files:
-        print(f"No PDFs found in {docs_dir}")
-        return
+    # 2/ Пример использования: загружаем нужный бренд
+    index_dir = "../data/indexes"
+    # selected_brand = "Daichi"
+    selected_brand = "Dantex"
+    print(f'\nSelected_brand:\n {selected_brand}')
 
-    # Выбираем первый документ (или любой другой по индексу)
-    pdf_name = pdf_files[0]
-    pdf_path = os.path.join(docs_dir, pdf_name)
-    logging.info(f"Parsing document: {pdf_name}")
+    with open(os.path.join(index_dir, f"text_{selected_brand}.pkl"), "rb") as f:
+        texts = pickle.load(f)
+    index = faiss.read_index(os.path.join(index_dir, f"index_{selected_brand}.faiss"))
 
-    # 2) Парсим PDF → получаем список «чистых» параграфов
-    original_texts = parse_pdf(pdf_path)
-    logging.info(f"Extracted {len(original_texts)} paragraphs")
-
-    if not original_texts:
-        print("Parser returned no text to vectorize")
-        return
-
-    # 3) Векторизуем
-    text_vectors = vectorize_text(original_texts)
-    # Если это список списков, измеряем так:
-    num_vecs = len(text_vectors)
-    dim = len(text_vectors[0]) if num_vecs > 0 else 0
-    logging.info(f"Obtained {num_vecs} vectors of dimension {dim}")
-
-    # 4) Создаём FAISS-индекс
-    faiss_index = create_faiss_index(text_vectors, original_texts)
-    logging.info("FAISS index created")
-
-    # 5) Пробный запрос к LLM через RAG
-    query = "Как очистить фильтр на Daichi ICE95AVQ1?"
+    # Пример запроса
+    # query = "Как очистить фильтр на Daichi ICE95AVQ1?"
     # query = "Как установить дренажный шланг на Daichi ICE95AVQ1?"
-    print("\nQuery:\n", query)
-    response = get_llm_answer(query, original_texts, faiss_index)
-    print("\nResponse:\n", response)
+    query = "Как включить продув испарителя на сплите dantex RK-24SVGI?"
+    print("Query:\n", query)
+    response = get_llm_answer(query, texts, index)
+    print("Response:\n", response)
 
-    # 6) (Опционально) Запуск Telegram-бота
+    # 3/ (Опционально) Запуск Telegram-бота
     # start_bot(faiss_index)
 
 

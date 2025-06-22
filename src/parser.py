@@ -1,12 +1,16 @@
+import os
+import re
+import pickle
 import logging
 
-from pdfminer.high_level import extract_text
-import re
 from typing import List
-from src.vectorizer import vectorize_text
 
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning)
+import faiss
+from pdfminer.high_level import extract_text
+
+from src.vectorizer import vectorize_text
+from src.faiss_index import create_faiss_index
+
 
 
 def extract_text_from_pdf(pdf_path):
@@ -59,13 +63,31 @@ def parse_pdf(pdf_path: str, min_length: int = 30) -> List[str]:
     # Оставляем только «достаточно длинные» фрагменты
     return [p for p in cleaned if len(p) >= min_length]
 
+def build_index(brand_name, pdf_path, output_dir="../data/indexes"):
+
+    os.makedirs(output_dir, exist_ok=True)
+    text = parse_pdf(pdf_path)
+
+    if not text:
+        print(f"[{brand_name}] PDF пуст или не распарсен.")
+        return
+
+    vectors = vectorize_text(text)
+    index = create_faiss_index(vectors, text)
+
+    with open(os.path.join(output_dir, f"text_{brand_name}.pkl"), "wb") as f:
+        pickle.dump(text, f)
+
+    faiss.write_index(index, os.path.join(output_dir, f"index_{brand_name}.faiss"))
+    logging.info(f"{brand_name}:\tИндекс и текст сохранены.")
+
 
 # Пример использования:
 def main():
     logging.basicConfig(level=logging.INFO)
 
     # 1) Парсим PDF и получаем абзацы
-    paras = parse_pdf("../documents/sample_2.pdf")
+    paras = parse_pdf("../data/documents/sample_2.pdf")
     logging.info(f"Parsed {len(paras)} paragraphs.")
 
     if not paras:
