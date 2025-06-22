@@ -20,6 +20,6 @@ tokenizer.save_pretrained(local_model_path)
 model.save_pretrained(local_model_path)
 
 print(f"Модель и токенизатор сохранены в {local_model_path}")
-# # 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
+
 
 
