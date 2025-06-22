@@ -21,7 +21,7 @@ project_folder/
 │   ├── vectorizer.py         # Скрипт для векторизации текста с помощью модели Sentence-BERT
 │   ├── faiss_index.py        # Скрипт для работы с FAISS для хранения и поиска векторных представлений
 │   ├── telegram_bot.py       # Скрипт для реализации Telegram-бота
-│   ├── llm_integration.py    # Скрипт для интеграции с внешним API (LLM)
+│   ├── llm_integration.py    # Скрипт для интеграции с локальным API (LLM)
 │   └── utils.py              # Утилиты, например, для конфигурации или логирования
 │
 ├── requirements.txt          # Файл зависимостей
