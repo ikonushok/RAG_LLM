@@ -1,12 +1,16 @@
-import logging
 import os
-# import logging
+import logging
 
 from src.llm_integration import get_llm_answer
 from src.parser import parse_pdf
 from src.vectorizer import vectorize_text
 from src.faiss_index import create_faiss_index
 # from src.telegram_bot import start_bot
+
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 def main():
     # Настройка логирования
@@ -21,7 +25,7 @@ def main():
         return
 
     # Выбираем первый документ (или любой другой по индексу)
-    pdf_name = pdf_files[1]
+    pdf_name = pdf_files[0]
     pdf_path = os.path.join(docs_dir, pdf_name)
     logging.info(f"Parsing document: {pdf_name}")
 

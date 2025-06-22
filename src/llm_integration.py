@@ -1,14 +1,14 @@
 import numpy as np
 import logging
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from src.vectorizer import vectorize_text
 
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-device = "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+# device = "cpu"
 print(f'device: {device}')
 
 # Загрузка локальной модели OpenHermes
@@ -37,22 +37,45 @@ def get_relevant_text(query, faiss_index, original_texts, top_k=1):  # 2
     return relevant_texts
 
 # Генерация ответа от LLM
+# def get_llm_answer(query, original_texts, faiss_index):
+#     relevant_texts = get_relevant_text(query, faiss_index, original_texts, top_k=2)
+#     context = "\n---\n".join(relevant_texts)
+#     prompt = format_prompt(query, context)
+#
+#     inputs = tokenizer(prompt, return_tensors="pt").to(device)
+#     with torch.no_grad():
+#         outputs = model.generate(
+#             **inputs,
+#             max_new_tokens=256,  # max_tokens=512,
+#             do_sample=False,
+#             # do_sample=True,
+#             # temperature=0.7,
+#             # top_p=0.9,
+#             eos_token_id=tokenizer.eos_token_id,
+#             pad_token_id=tokenizer.eos_token_id
+#         )
+#     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+#     return response.replace(prompt, "").strip()
+
 def get_llm_answer(query, original_texts, faiss_index):
     relevant_texts = get_relevant_text(query, faiss_index, original_texts, top_k=2)
     context = "\n---\n".join(relevant_texts)
     prompt = format_prompt(query, context)
 
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
+
+    generation_config = GenerationConfig(
+        max_new_tokens=256,
+        do_sample=False,
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.eos_token_id
+    )
+
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=256,  # max_tokens=512,
-            do_sample=False,
-            # do_sample=True,
-            # temperature=0.7,
-            # top_p=0.9,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.eos_token_id
+            generation_config=generation_config
         )
+
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return response.replace(prompt, "").strip()
